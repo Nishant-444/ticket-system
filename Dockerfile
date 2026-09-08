@@ -8,8 +8,9 @@ WORKDIR /app
 # Copy application source code including vendored dependencies
 COPY . .
 
+# Cache bust: force fresh download of cmd/server
 # Build statically linked binary without CGO using vendored modules
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -o /app/server .
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -o /app/server ./cmd/server
 
 # Stage 2: Minimal runtime image
 FROM alpine:3.20
