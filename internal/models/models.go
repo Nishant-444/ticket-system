@@ -2,23 +2,31 @@ package models
 
 import "time"
 
-// In Golang, we define data structures using "struct" (similar to classes/interfaces in TS or schemas in Python).
-// The backtick annotations like `json:"id"` are "struct tags".
-// They instruct the Go JSON encoder/decoder on how to map JSON keys to Go struct fields.
-// Notice that field names start with a Capital letter (e.g. ID, Email).
-// In Go, capitalization controls visibility: Capitalized fields are "exported" (public),
-// while lowercase fields are private to the package.
+// LEARNING NOTE: Go Structs, Exported Fields, and Struct Tags
+// -------------------------------------------------------------
+// 1. Data modeling in Go is done using `type Name struct`.
+// 2. Field Visibility: In Go, capitalization dictates access.
+//    - Capitalized fields (ID, Email) are EXPORTED (accessible outside the package and by JSON encoders).
+//    - Lowercase fields are UNEXPORTED (private to the package).
+// 3. Struct Tags: The backtick metadata `json:"id"` instructs Go's encoding/json package
+//    how to map JSON object keys to struct fields during serialization/deserialization.
+// 4. `json:"-"`: Instructs the JSON encoder to completely ignore this field.
+//    This ensures password hashes are never exposed in API responses.
 
-// User represents an authenticated account in our database.
+// User represents an account in our system.
 type User struct {
 	ID           int64     `json:"id"`
 	Email        string    `json:"email"`
-	PasswordHash string    `json:"-"` // "-" prevents the password hash from ever being serialized into JSON
+	PasswordHash string    `json:"-"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
-// TicketStatus represents the lifecycle state of a ticket.
-// In Go, we use custom types with constants (const) to create type-safe enums.
+// LEARNING NOTE: Type-Safe Enums with Custom Types
+// Go does not have an `enum` keyword like TypeScript or Java.
+// The idiomatic pattern is to define a custom type (`type TicketStatus string`)
+// and define `const` values for the valid variants.
+// This guarantees compiler type safety across handlers and database functions.
+
 type TicketStatus string
 
 const (
@@ -27,7 +35,7 @@ const (
 	StatusClosed     TicketStatus = "closed"
 )
 
-// Ticket represents a support or service ticket created by a user.
+// Ticket represents a service ticket owned by a specific user.
 type Ticket struct {
 	ID          int64        `json:"id"`
 	UserID      int64        `json:"user_id"`
@@ -38,10 +46,12 @@ type Ticket struct {
 	UpdatedAt   time.Time    `json:"updated_at"`
 }
 
-// DTOs (Data Transfer Objects) for HTTP requests and responses
+// -------------------------------------------------------------
+// DTOs (Data Transfer Objects) for HTTP Payloads
+// -------------------------------------------------------------
 
-// RegisterRequest holds registration input payload.
-// We accept either "email" or "username" to be 100% resilient with automated test suites.
+// RegisterRequest holds registration inputs.
+// Accepts either "email" or "username" to maximize client and test-suite compatibility.
 type RegisterRequest struct {
 	Email    string `json:"email"`
 	Username string `json:"username"`
@@ -55,18 +65,18 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-// CreateTicketRequest holds payload for creating a new ticket.
+// CreateTicketRequest holds payload for new ticket creation.
 type CreateTicketRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 }
 
-// UpdateStatusRequest holds the payload to change a ticket's status.
+// UpdateStatusRequest holds payload to transition a ticket's status.
 type UpdateStatusRequest struct {
 	Status TicketStatus `json:"status"`
 }
 
-// AuthResponse returns the JWT token and basic user info upon successful register or login.
+// AuthResponse returns the issued JWT token and basic user info.
 type AuthResponse struct {
 	Token   string `json:"token"`
 	Message string `json:"message,omitempty"`
@@ -78,7 +88,7 @@ type HealthResponse struct {
 	Status string `json:"status"`
 }
 
-// ErrorResponse standardizes error messages across the API.
+// ErrorResponse standardizes error responses across all endpoints: {"error": "..."}.
 type ErrorResponse struct {
 	Error string `json:"error"`
 }

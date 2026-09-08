@@ -7,21 +7,27 @@ import (
 	"os"
 	"path/filepath"
 
-	// In Go, the blank import `_ "..."` executes the package's `init()` function without importing any symbols.
-	// modernc.org/sqlite registers itself as a driver named "sqlite" with the standard "database/sql" package.
-	// Because it is pure Go, it requires no C compiler (no CGO), making Docker builds fast and static!
+	// LEARNING NOTE: Blank Imports in Go
+	// -------------------------------------------------------------
+	// In Go, `import _ "package"` executes the package's `init()` function without
+	// importing symbols directly into your code.
+	// modernc.org/sqlite registers itself as a driver named "sqlite" with standard database/sql.
+	// Because this driver is 100% pure Go, it requires no C compiler (no CGO),
+	// allowing us to compile static binaries and build lightweight Docker images effortlessly.
 	_ "modernc.org/sqlite"
 )
 
-// DB wraps standard library sql.DB pointer.
-// In Go, structs can hold state and methods can be attached to them.
+// LEARNING NOTE: Struct Embedding for Interface Extension
+// By embedding `*sql.DB` directly into our `DB` struct, `DB` automatically inherits all
+// methods of `*sql.DB` (like Exec, Query, QueryRow, Ping) while letting us attach
+// custom helper methods like `migrate()`.
 type DB struct {
 	*sql.DB
 }
 
-// InitDB sets up the SQLite database file, creates tables, and runs pragmas.
+// InitDB sets up the SQLite database file, applies WAL pragmas, and runs schema migrations.
 func InitDB(dbPath string) (*DB, error) {
-	// If dbPath contains directory folders, make sure they exist
+	// Ensure parent directory exists (e.g. ./data or /data)
 	dir := filepath.Dir(dbPath)
 	if dir != "." && dir != "" {
 		if err := os.MkdirAll(dir, 0755); err != nil {
@@ -29,24 +35,25 @@ func InitDB(dbPath string) (*DB, error) {
 		}
 	}
 
-	// sql.Open initializes the driver handle. It does not actually connect to the database yet.
+	// sql.Open initializes the driver handle. It does not open a socket/file immediately.
 	sqlDB, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	// Ping verifies that a connection can actually be made.
+	// Ping sends a probe to verify the database file is readable/writable.
 	if err := sqlDB.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// For SQLite, setting max open connections prevents "database is locked" errors during concurrent writes.
-	// WAL (Write-Ahead Logging) allows concurrent readers and a writer.
+	// LEARNING NOTE: SQLite Concurrency
+	// SQLite is file-based. Setting MaxOpenConns to 1 avoids "database is locked" errors
+	// during concurrent write operations while Write-Ahead Logging (WAL) handles reads smoothly.
 	sqlDB.SetMaxOpenConns(1)
 
 	db := &DB{sqlDB}
 
-	// Run initial schema migrations
+	// Execute DDL migrations to ensure tables exist
 	if err := db.migrate(); err != nil {
 		return nil, fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -55,7 +62,7 @@ func InitDB(dbPath string) (*DB, error) {
 	return db, nil
 }
 
-// migrate creates the necessary database tables if they do not already exist.
+// migrate creates required tables and indexes if they do not already exist.
 func (db *DB) migrate() error {
 	// 1. Enable foreign keys and WAL mode for reliability
 	pragmas := []string{

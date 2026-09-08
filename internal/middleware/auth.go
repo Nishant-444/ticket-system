@@ -10,8 +10,15 @@ import (
 	"ticket-system/internal/models"
 )
 
-// In Go, context keys should NOT be raw strings to avoid collisions between packages.
-// Instead, we define an unexported (lowercase) custom type for context keys.
+// LEARNING NOTE: Context Keys in Go
+// -------------------------------------------------------------
+// In languages like JavaScript, you can attach arbitrary properties to `req.user`.
+// In Go, state is passed down the request pipeline via `r.Context()`.
+// To avoid key collisions between different third-party packages, Go strongly advises
+// against using raw strings as context keys.
+// Instead, we define an unexported (lowercase) custom type: `type contextKey string`.
+// Because it is unexported, no other package can accidentally overwrite our keys!
+
 type contextKey string
 
 const (
@@ -19,21 +26,29 @@ const (
 	userEmailKey contextKey = "userEmail"
 )
 
-// AuthMiddleware intercepts incoming HTTP requests to verify the JWT Bearer token.
-// In Go, middleware is typically a higher-order function:
-// func(http.Handler) http.Handler
+// LEARNING NOTE: The Go Middleware Pattern
+// -------------------------------------------------------------
+// In Express (Node.js), middleware is `(req, res, next) => next()`.
+// In Go, middleware is a higher-order function:
+//
+//     func(next http.Handler) http.Handler
+//
+// It takes the next handler in the chain, wraps it with pre/post processing logic,
+// and returns a new http.Handler.
+
+// AuthMiddleware intercepts requests, validates the Bearer JWT, and injects user identity into Context.
 func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-		// http.HandlerFunc adapts a normal function into an http.Handler interface
+		// http.HandlerFunc is an adapter that lets ordinary functions act as http.Handler
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// 1. Read the Authorization header
+			// STEP 1: Extract Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				sendJSONError(w, "missing authorization header", http.StatusUnauthorized)
 				return
 			}
 
-			// 2. Check for the "Bearer " prefix (case-insensitive or exact)
+			// STEP 2: Verify "Bearer <token>" format
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
 				sendJSONError(w, "invalid authorization header format, expected: Bearer <token>", http.StatusUnauthorized)
@@ -42,26 +57,31 @@ func AuthMiddleware(secret string) func(http.Handler) http.Handler {
 
 			tokenString := parts[1]
 
-			// 3. Cryptographically validate the token
+			// STEP 3: Cryptographically verify token signature and expiration
 			claims, err := auth.ValidateToken(tokenString, secret)
 			if err != nil {
 				sendJSONError(w, "invalid or expired token", http.StatusUnauthorized)
 				return
 			}
 
-			// 4. Inject the authenticated user's info into the request context.
-			// In Go, HTTP requests pass state down through context.Context.
+			// STEP 4: Inject claims into Request Context
+			// `context.WithValue` creates a child context containing the new key-value pair.
 			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
 			ctx = context.WithValue(ctx, userEmailKey, claims.Email)
 
-			// 5. Call the next handler in the chain with the enriched context.
+			// STEP 5: Forward request to the next handler with enriched context
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }
 
-// GetUserID retrieves the authenticated user's ID from the request context.
-// It returns (userID, true) if found, or (0, false) if not authenticated.
+// LEARNING NOTE: Type Assertions in Go
+// Context values are stored as `any` (interface{}).
+// To use them as concrete types like `int64`, we use a "comma-ok" type assertion:
+// `id, ok := val.(int64)`
+// If the type matches, `ok` is true; otherwise it safely returns false without panicking.
+
+// GetUserID retrieves the authenticated user's ID from context.
 func GetUserID(ctx context.Context) (int64, bool) {
 	val := ctx.Value(userIDKey)
 	if val == nil {
@@ -71,7 +91,7 @@ func GetUserID(ctx context.Context) (int64, bool) {
 	return id, ok
 }
 
-// GetUserEmail retrieves the authenticated user's email from the request context.
+// GetUserEmail retrieves the authenticated user's email from context.
 func GetUserEmail(ctx context.Context) (string, bool) {
 	val := ctx.Value(userEmailKey)
 	if val == nil {
@@ -81,14 +101,14 @@ func GetUserEmail(ctx context.Context) (string, bool) {
 	return email, ok
 }
 
-// CORSMiddleware handles cross-origin requests for web browser accessibility.
+// CORSMiddleware enables cross-origin requests for web client access.
 func CORSMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		// Handle preflight OPTIONS request
+		// Handle HTTP OPTIONS preflight request
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
 			return
@@ -98,7 +118,7 @@ func CORSMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// sendJSONError writes a consistent JSON error response.
+// sendJSONError writes a standard ErrorResponse JSON payload.
 func sendJSONError(w http.ResponseWriter, message string, statusCode int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
