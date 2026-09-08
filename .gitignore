@@ -1,6 +1,6 @@
 # Binaries
 bin/
-server
+/server
 
 # Database and logs
 data/
