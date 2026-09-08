@@ -1,0 +1,18 @@
+# Binaries
+bin/
+server
+
+# Database and logs
+data/
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# Environment files
+.env
+
+# OS / Editor files
+.DS_Store
+.vscode/
+.idea/
