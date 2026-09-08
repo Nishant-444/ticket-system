@@ -6,8 +6,8 @@
 
 **Version:** 1.0.0  
 **Status:** Production-Ready MVP  
-**Live API Endpoint:** [https://ticket-system-eva.onrender.com](https://ticket-system-eva.onrender.com) *(Update upon Render deployment)*  
-**Tech Stack:** Golang, SQLite, JWT (HMAC-SHA256), Bcrypt, Docker, Alpine Linux, Render  
+**Live API Endpoint:** [https://ticket-system-production-c683.up.railway.app](https://ticket-system-production-c683.up.railway.app)   
+**Tech Stack:** Golang, SQLite, JWT (HMAC-SHA256), Bcrypt, Docker, Alpine Linux, Railway  
 
 ![Golang](https://img.shields.io/badge/Golang-00ADD8?style=for-the-badge&logo=go&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
@@ -20,7 +20,7 @@
 
 **TicketHub** is a high-performance, containerized backend microservice built with **Golang** for managing service and issue tickets. Designed to satisfy all strict requirements of the **EVA Bharat Backend Development Intern Assignment**, the service enforces **stateless JWT authentication**, **strict ownership-based data isolation**, and **one-way lifecycle status progression**.
 
-The application utilizes an embedded, zero-configuration **SQLite database** using a 100% pure-Go driver (`modernc.org/sqlite`), eliminating all C-compiler (CGO) dependencies. This architecture produces a statically linked binary packaged in a minimal Alpine Linux container of only **26.7 MB**, ready for zero-cost cloud deployment on platforms such as Render, Railway, or Fly.io.
+The application utilizes an embedded, zero-configuration **SQLite database** using a 100% pure-Go driver (`modernc.org/sqlite`), eliminating all C-compiler (CGO) dependencies. This architecture produces a statically linked binary packaged in a minimal Alpine Linux container of only **26.7 MB**, ready for zero-cost cloud deployment on platforms such as Railway, Railway, or Fly.io.
 
 ### Key Capabilities
 
@@ -31,7 +31,7 @@ The application utilizes an embedded, zero-configuration **SQLite database** usi
 
 **Live Infrastructure:**
 
-- **Compute:** Render Web Service (Free Tier) / Docker Container
+- **Compute:** Railway Web Service (Free Tier) / Docker Container
 - **Database:** Embedded SQLite 3 with Write-Ahead Logging (WAL) enabled
 - **Containerization:** Multi-stage Docker build (Go 1.23 Alpine &rarr; Alpine 3.20)
 - **Security:** Bcrypt (cost 10) password hashing, HMAC-SHA256 JWT tokens, CORS policy
@@ -44,7 +44,7 @@ The application utilizes an embedded, zero-configuration **SQLite database** usi
 Client (Web / Mobile / Postman) 
   │
   ▼
-[ Render / Cloudflare Edge (HTTPS) ]
+[ Railway / Cloudflare Edge (HTTPS) ]
   │
   ▼
 [ Reverse Proxy / Port 8080 ]
@@ -93,7 +93,7 @@ Client (Web / Mobile / Postman)
 | **Authentication** | JWT (`golang-jwt/jwt/v5`) | v5.2.1 | Stateless HMAC-SHA256 session token issuance and verification |
 | **Password Hashing** | Bcrypt (`golang.org/x/crypto`) | v0.28.0 | Adaptive cryptographic password hashing (cost 10) |
 | **Containerization** | Docker + Multi-stage Alpine | 3.20 | Minimal 26MB production runtime container |
-| **Hosting Platform** | Render / Railway / Fly.io | Free Tier | Public cloud container deployment |
+| **Hosting Platform** | Railway | Free Tier | Public cloud container deployment |
 
 ---
 
@@ -230,14 +230,14 @@ ENV DB_PATH=/data/tickets.db
 CMD ["/app/server"]
 ```
 
-### Free Deployment on Render
+### Free Deployment on Railway
 
 1. Create a repository on GitHub and push the `ticket-system` directory:
    ```bash
    git remote add origin https://github.com/<your-username>/ticket-system.git
    git push -u origin main
    ```
-2. Log into [Render](https://render.com) and click **New +** &rarr; **Web Service**.
+2. Log into [Railway](https://railway.com) and click **New +** &rarr; **Web Service**.
 3. Select your GitHub repository.
 4. Set **Environment** to **Docker** and **Plan** to **Free**.
 5. Set environment variables:
