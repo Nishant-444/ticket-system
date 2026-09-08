@@ -9,7 +9,7 @@ WORKDIR /app
 COPY . .
 
 # Build statically linked binary without CGO using vendored modules
-RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -o /app/server ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -mod=vendor -ldflags="-s -w" -o /app/server .
 
 # Stage 2: Minimal runtime image
 FROM alpine:3.20
